@@ -241,7 +241,7 @@ function renderSetup(){
       <div class="card"><h2>Session</h2><div class="field"><label>Session name</label><input id="sessionName" value="${esc(state.session.name||'')}"></div><div class="field" style="margin-top:10px"><label>Day / label</label><input id="sessionDay" value="${esc(state.session.day||'')}"></div></div>
       <div class="card"><h2>Current-season roles</h2><div class="small muted" style="margin-bottom:10px">${state.roles.length} roles loaded across ${rolesByShow.length} productions.</div>${rolesByShow.map(([show,rs])=>`<div style="margin:12px 0 4px"><strong>${esc(show)}</strong></div>${rs.map(r=>`<div class="small" style="padding:4px 0;border-bottom:1px solid var(--soft)">${esc(r.name)} <span class="muted">· ${esc(r.voice)}</span></div>`).join('')}`).join('')}</div>
       <div class="card"><h2>Current-semester cast list</h2><p class="small muted">Import the cast lists from the current semester's Fall operas. A 🎭 badge appears beside a singer whose name matches this list. This is informational only: it does <strong>not</strong> change scores, rankings, or votes.</p><div class="actions"><label class="btn file-label">Import cast list<input id="castInput" type="file" accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values,text/plain"></label><button class="btn" id="pasteCast">Paste cast list</button><button class="btn" id="downloadCastTemplate">Download template</button><button class="btn small-btn" id="clearCast" ${state.castList.length?'':'disabled'}>Clear cast list</button></div><div class="small muted" style="margin-top:10px">Expected columns: <strong>Name</strong>, optional <strong>Show</strong> and <strong>Role</strong>. ${state.castList.length?`${state.castList.length} cast entries loaded.`:'No cast list loaded.'}</div>${state.castList.length?`<div class="table-wrap" style="margin-top:10px"><table><thead><tr><th>Name</th><th>Show</th><th>Role</th></tr></thead><tbody>${state.castList.slice(0,12).map(c=>`<tr><td><strong>${esc(c.name)}</strong></td><td>${esc(c.show||'')}</td><td>${esc(c.role||'')}</td></tr>`).join('')}</tbody></table>${state.castList.length>12?`<div class="small muted" style="padding-top:8px">Showing first 12 of ${state.castList.length} entries.</div>`:''}</div>`:''}</div>
-      <div class="card"><h2>Backup & restore</h2><p class="small muted">Audition data is stored locally in this browser. Before using real data, keep a JSON backup. Importing a backup is now a two-step process: the app validates the file and shows exactly what will replace your current data before anything changes.</p><div class="actions"><button class="btn" id="exportBackup2">Share / save backup</button><button class="btn" id="copyBackup">Copy backup JSON</button></div><div class="rule"></div><div class="field"><label for="jsonInput">Import an AuditionDesk JSON backup</label><input class="file-picker" id="jsonInput" type="file" accept=".json,application/json,text/plain"></div><div class="actions" style="margin-top:10px"><button class="btn" id="pasteBackup">Paste backup JSON</button></div><div class="small muted" style="margin-top:10px">Nothing is replaced until you see the import summary and tap <strong>Replace current data</strong>.</div></div>
+      <div class="card"><h2>Backup & restore</h2><p class="small muted">Audition data is stored locally in this browser. Before using real data, keep a JSON backup. Importing a backup is now a two-step process: the app validates the file and shows exactly what will replace your current data before anything changes.</p><div class="actions"><button class="btn" id="exportBackup2">Share / save backup</button><button class="btn" id="copyBackup">Copy backup JSON</button></div><div class="rule"></div><div class="field"><label for="jsonInput">Import an AuditionDesk JSON backup</label><input class="file-picker" id="jsonInput" type="file" accept=".json,application/json,text/plain"></div><div class="actions" style="margin-top:10px"><button class="btn" id="pasteBackup">Review selected backup</button></div><div class="small muted" style="margin-top:10px">Select a backup file, then tap <strong>Review selected backup</strong>. You can also use that button to paste JSON manually. Nothing is replaced until you review the summary and tap <strong>Replace current data</strong>.</div></div>
     </section>
   </div>`;
 }
@@ -287,7 +287,7 @@ function bind(){
   document.getElementById('exportBackup')?.addEventListener('click',openBackupExportModal);
   document.getElementById('exportBackup2')?.addEventListener('click',openBackupExportModal);
   document.getElementById('copyBackup')?.addEventListener('click',copyBackupJSON);
-  document.getElementById('pasteBackup')?.addEventListener('click',openPasteBackup);
+  document.getElementById('pasteBackup')?.addEventListener('click',handleBackupButton);
   document.getElementById('jsonInput')?.addEventListener('change',importBackup);
   document.getElementById('castInput')?.addEventListener('change',importCastList);
   document.getElementById('pasteCast')?.addEventListener('click',openPasteCast);
@@ -483,7 +483,16 @@ async function importBackup(e){
   const input=e?.target; const file=input?.files?.[0]; if(!file)return;
   try{const raw=await readFileAsText(file); previewImportText(raw,file.name||'Selected backup')}
   catch(err){showImportError(err?.message||'The selected file could not be read.')}
-  finally{if(input)input.value=''}
+}
+async function handleBackupButton(){
+  const input=document.getElementById('jsonInput');
+  const file=input?.files?.[0];
+  if(file){
+    try{const raw=await readFileAsText(file); previewImportText(raw,file.name||'Selected backup')}
+    catch(err){showImportError(err?.message||'The selected file could not be read.')}
+    return;
+  }
+  openPasteBackup();
 }
 function openPasteBackup(){
   document.getElementById('modalRoot').innerHTML=`<div class="modal-backdrop" id="pasteBackupBackdrop"><div class="modal" role="dialog" aria-modal="true"><h2>Paste backup JSON</h2><p>This is a fallback for browsers that have trouble reading a selected file. Paste the complete contents of an AuditionDesk JSON backup below.</p><textarea class="json-preview" id="pastedBackup" placeholder="{\n  &quot;version&quot;: 3,\n  ...\n}"></textarea><div class="actions end" style="margin-top:14px"><button class="btn" id="pasteBackupCancel">Cancel</button><button class="btn primary" id="pasteBackupReview">Review import</button></div></div></div>`;
