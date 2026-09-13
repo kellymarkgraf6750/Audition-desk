@@ -320,6 +320,51 @@ function parseCSV(text){
   if(cell.length||row.length){row.push(cell.replace(/\r$/,''));rows.push(row)}
   return rows.filter(r=>r.some(c=>String(c).trim()!==''));
 }
+function rowsToSingers(rows){
+  if(!rows.length)return [];
+  const first=rows[0].map(normalizeHeader);
+  const hasHeader=first.some(h=>['name','singer','student','performer'].includes(h));
+  const start=hasHeader?1:0;
+  let nameIdx=hasHeader?first.findIndex(h=>['name','singer','student','performer'].includes(h)):0;
+  let timeIdx=hasHeader?first.findIndex(h=>['time','auditiontime','audition'].includes(h)):-1;
+  let voiceIdx=hasHeader?first.findIndex(h=>['voice','voicetype','fach'].includes(h)):2;
+  if(nameIdx<0)nameIdx=0;
+  return rows.slice(start).map((r,i)=>({
+    id:uid('s'),
+    name:String(r[nameIdx]||'').trim(),
+    time:String(timeIdx>=0?(r[timeIdx]||''):'').trim(),
+    voice:String(voiceIdx>=0?(r[voiceIdx]||''):'').trim(),
+    score:null,
+    roles:[],
+    notes:'',
+    followUp:false,
+    followUpReason:'',
+    status:'waiting',
+    order:i+1
+  })).filter(x=>x.name);
+}
+function openPasteRoster(){
+  document.getElementById('modalRoot').innerHTML=`<div class="modal-backdrop" id="pasteRosterBackdrop"><div class="modal" role="dialog" aria-modal="true"><h2>Paste audition roster</h2><p>Copy rows from Excel or Numbers and paste them below. Use columns: <strong>Name</strong>, optional <strong>Time</strong> and <strong>Voice</strong>. The first row may be a header.</p><textarea id="rosterPaste" style="min-height:220px" placeholder="Name\tTime\tVoice\nJane Smith\t9:00\tSoprano\nJohn Brown\t9:06\tTenor"></textarea><div class="actions end" style="margin-top:14px"><button class="btn" id="rosterCancel">Cancel</button><button class="btn primary" id="rosterSave">Load roster</button></div></div></div>`;
+  const close=()=>document.getElementById('modalRoot').innerHTML='';
+  document.getElementById('rosterCancel').onclick=close;
+  document.getElementById('pasteRosterBackdrop').addEventListener('click',e=>{if(e.target.id==='pasteRosterBackdrop')close()});
+  document.getElementById('rosterSave').onclick=()=>{
+    try{
+      const text=document.getElementById('rosterPaste').value;
+      const imported=rowsToSingers(parseDelimited(text));
+      if(!imported.length)throw new Error('No singer rows found. Expected Name, Time, and Voice columns or tab-separated rows.');
+      if(state.singers.length&&!confirm(`Replace the current roster with ${imported.length} singers?`))return;
+      state.singers=imported;
+      state.votes={};
+      currentSingerId=state.singers[0]?.id||null;
+      saveState();
+      close();
+      toast(`${imported.length} singers loaded`);
+      render();
+    }catch(err){alert(err.message)}
+  };
+  setTimeout(()=>document.getElementById('rosterPaste')?.focus(),0);
+}
 function importSingerCSV(e){const file=e.target.files?.[0];if(!file)return;const fr=new FileReader();fr.onload=()=>{try{const imported=rowsToSingers(parseDelimited(String(fr.result)));if(!imported.length)throw new Error('No singer rows found');if(state.singers.length&&!confirm(`Replace the current roster with ${imported.length} singers?`))return;state.singers=imported;state.votes={};currentSingerId=state.singers[0]?.id||null;saveState();toast(`${imported.length} singers imported`);render()}catch(err){alert(`Could not import roster: ${err.message}`)}finally{e.target.value=''}};fr.readAsText(file)}
 
 function normalizeHeader(h){return String(h||'').trim().toLowerCase().replace(/[^a-z0-9]+/g,'')}
