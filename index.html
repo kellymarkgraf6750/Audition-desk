@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light">
-<title>Audition Desk — Local Prototype v5</title>
+<title>Audition Desk — Local Prototype v8</title>
 <style>
 :root{
   --bg:#f4f4f1; --panel:#ffffff; --ink:#111111; --muted:#6d6d68; --line:#d9d9d3;
@@ -57,7 +57,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:9px 8px;border-bottom:1p
     <div class="brand">Audition Desk</div>
     <div class="session-chip" id="sessionChip"></div>
     <nav id="nav"></nav>
-    <div class="aside-foot">Local prototype v5 · browser autosave</div>
+    <div class="aside-foot">Local prototype v8 · browser autosave</div>
   </aside>
   <main id="app"></main>
 </div>
@@ -288,7 +288,8 @@ function bind(){
   document.getElementById('exportBackup2')?.addEventListener('click',openBackupExportModal);
   document.getElementById('copyBackup')?.addEventListener('click',copyBackupJSON);
   document.getElementById('pasteBackup')?.addEventListener('click',handleBackupButton);
-  document.getElementById('jsonInput')?.addEventListener('change',()=>{ const f=document.getElementById('jsonInput')?.files?.[0]; const el=document.getElementById('jsonFileStatus'); if(el) el.textContent=f?`Selected: ${f.name} (${Math.round(f.size/1024)} KB)`:'No backup file selected.'; });
+  document.getElementById('jsonInput')?.addEventListener('change',e=>{ const f=e.target?.files?.[0]; const el=document.getElementById('jsonFileStatus'); if(el) el.textContent=f?`Selected: ${f.name} (${Math.max(1,Math.round(f.size/1024))} KB)`:'No backup file selected.'; });
+  document.getElementById('jsonInput')?.addEventListener('input',e=>{ const f=e.target?.files?.[0]; const el=document.getElementById('jsonFileStatus'); if(el) el.textContent=f?`Selected: ${f.name} (${Math.max(1,Math.round(f.size/1024))} KB)`:'No backup file selected.'; });
   document.getElementById('castInput')?.addEventListener('change',importCastList);
   document.getElementById('pasteCast')?.addEventListener('click',openPasteCast);
   document.getElementById('clearCast')?.addEventListener('click',clearCastList);
@@ -312,6 +313,17 @@ function openSingerModal(id=null){
 }
 function loadDemo(){if(state.singers.length && !confirm('Append demo singers to the existing queue?'))return;const incoming=demoSingers().map((s,i)=>({...s,id:uid('d'),order:state.singers.length+i+1}));state.singers.push(...incoming);currentSingerId=currentSingerId||incoming[0]?.id;saveState();toast('Demo singers loaded');render()}
 function clearSingers(){if(!confirm('Clear all singers, evaluations, notes, and final votes? The role list will remain.'))return;state.singers=[];state.votes={};currentSingerId=null;saveState();render();toast('Audition data cleared')}
+function sortQueueByTime(){
+  state.singers.sort((a,b)=>{
+    const ta=String(a.time||'').trim(), tb=String(b.time||'').trim();
+    const pa=ta.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/i), pb=tb.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/i);
+    function minutes(m){if(!m)return Number.POSITIVE_INFINITY;let h=Number(m[1]), min=Number(m[2]||0), ap=(m[3]||'').toLowerCase();if(ap==='pm'&&h<12)h+=12;if(ap==='am'&&h===12)h=0;return h*60+min}
+    return minutes(pa)-minutes(pb);
+  });
+  state.singers.forEach((s,i)=>s.order=i+1);
+  currentSingerId=state.singers.find(s=>s.id===currentSingerId)?.id||state.singers[0]?.id||null;
+  saveState(); render(); toast('Queue sorted by audition time');
+}
 
 function parseCSV(text){
   const rows=[];let row=[],cell='',q=false;
