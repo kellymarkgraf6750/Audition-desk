@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light">
-<title>Audition Desk — Local Prototype v3</title>
+<title>Audition Desk — Local Prototype v5</title>
 <style>
 :root{
   --bg:#f4f4f1; --panel:#ffffff; --ink:#111111; --muted:#6d6d68; --line:#d9d9d3;
@@ -41,6 +41,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:9px 8px;border-bottom:1p
 .show-title{font-size:14px;font-weight:750;margin:18px 0 8px;padding-top:2px}.show-title:first-child{margin-top:0}.ballot-table select{min-width:140px;padding:7px}.suggestion strong{font-weight:680}.suggestion .small{margin-top:2px}.conflict-row{background:#fff4f4}
 .empty{padding:42px 20px;text-align:center}.empty h2{margin:0 0 6px;font-size:19px}.empty p{margin:0 auto 18px;color:var(--muted);max-width:560px}
 .setup-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(320px,.9fr);gap:16px}.stack{display:grid;gap:12px}.compact-form{display:grid;grid-template-columns:1.2fr .8fr .8fr auto;gap:8px;align-items:end}.file-label{display:inline-flex;align-items:center;justify-content:center}.file-label input{display:none}
+.file-picker{padding:7px;background:#fff;font-size:12px}.summary-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:14px 0}.summary-box{border:1px solid var(--line);border-radius:8px;padding:10px;background:var(--soft2)}.summary-box strong{display:block;font-size:19px}.json-preview{width:100%;min-height:180px;font:11px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
 .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.32);display:flex;align-items:center;justify-content:center;padding:18px;z-index:30}.modal{width:min(560px,100%);background:#fff;border:1px solid #bbb;border-radius:12px;padding:20px;box-shadow:0 18px 60px rgba(0,0,0,.25)}.modal h2{margin:0 0 4px;font-size:20px}.modal p{margin:0 0 16px;color:var(--muted)}
 .toast{position:fixed;right:18px;bottom:18px;background:#111;color:#fff;border-radius:8px;padding:10px 12px;font-size:13px;z-index:50;box-shadow:0 10px 30px rgba(0,0,0,.18)}
 .kbd{border:1px solid #c9c9c3;border-bottom-width:2px;border-radius:4px;padding:1px 5px;background:#fff;font-size:11px;color:#555}
@@ -56,7 +57,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:9px 8px;border-bottom:1p
     <div class="brand">Audition Desk</div>
     <div class="session-chip" id="sessionChip"></div>
     <nav id="nav"></nav>
-    <div class="aside-foot">Local prototype · browser autosave</div>
+    <div class="aside-foot">Local prototype v5 · browser autosave</div>
   </aside>
   <main id="app"></main>
 </div>
@@ -229,7 +230,7 @@ function renderBallot(){
 
 function renderSetup(){
   const rolesByShow=[...groupedRoles()];
-  return topbar('Setup','Prepare the audition day before you begin.',`<button class="btn" id="exportBackup">Export backup</button>`) + `<div class="setup-grid">
+  return topbar('Setup','Prepare the audition day before you begin.',`<button class="btn" id="exportBackup">Backup / Restore</button>`) + `<div class="setup-grid">
     <section class="card"><h2>Audition roster</h2><p class="muted small">Load the day's scheduled singers before the auditions. CSV headers accepted: <strong>Name</strong>, optional <strong>Time</strong> and <strong>Voice</strong>. You can also paste directly from Excel or Numbers as tab-separated text.</p>
       <div class="compact-form"><div class="field full-mobile"><label>Name</label><input id="newName" placeholder="Singer name"></div><div class="field"><label>Time</label><input id="newTime" placeholder="9:00"></div><div class="field"><label>Voice</label><input id="newVoice" placeholder="Soprano"></div><button class="btn primary" id="quickAdd">Add</button></div>
       <div class="actions" style="margin-top:12px"><label class="btn file-label">Import roster CSV<input id="csvInput" type="file" accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values"></label><button class="btn" id="pasteRoster">Paste roster</button><button class="btn" id="loadDemo">Load demo singers</button></div>
@@ -240,7 +241,7 @@ function renderSetup(){
       <div class="card"><h2>Session</h2><div class="field"><label>Session name</label><input id="sessionName" value="${esc(state.session.name||'')}"></div><div class="field" style="margin-top:10px"><label>Day / label</label><input id="sessionDay" value="${esc(state.session.day||'')}"></div></div>
       <div class="card"><h2>Current-season roles</h2><div class="small muted" style="margin-bottom:10px">${state.roles.length} roles loaded across ${rolesByShow.length} productions.</div>${rolesByShow.map(([show,rs])=>`<div style="margin:12px 0 4px"><strong>${esc(show)}</strong></div>${rs.map(r=>`<div class="small" style="padding:4px 0;border-bottom:1px solid var(--soft)">${esc(r.name)} <span class="muted">· ${esc(r.voice)}</span></div>`).join('')}`).join('')}</div>
       <div class="card"><h2>Current-semester cast list</h2><p class="small muted">Import the cast lists from the current semester's Fall operas. A 🎭 badge appears beside a singer whose name matches this list. This is informational only: it does <strong>not</strong> change scores, rankings, or votes.</p><div class="actions"><label class="btn file-label">Import cast list<input id="castInput" type="file" accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values,text/plain"></label><button class="btn" id="pasteCast">Paste cast list</button><button class="btn" id="downloadCastTemplate">Download template</button><button class="btn small-btn" id="clearCast" ${state.castList.length?'':'disabled'}>Clear cast list</button></div><div class="small muted" style="margin-top:10px">Expected columns: <strong>Name</strong>, optional <strong>Show</strong> and <strong>Role</strong>. ${state.castList.length?`${state.castList.length} cast entries loaded.`:'No cast list loaded.'}</div>${state.castList.length?`<div class="table-wrap" style="margin-top:10px"><table><thead><tr><th>Name</th><th>Show</th><th>Role</th></tr></thead><tbody>${state.castList.slice(0,12).map(c=>`<tr><td><strong>${esc(c.name)}</strong></td><td>${esc(c.show||'')}</td><td>${esc(c.role||'')}</td></tr>`).join('')}</tbody></table>${state.castList.length>12?`<div class="small muted" style="padding-top:8px">Showing first 12 of ${state.castList.length} entries.</div>`:''}</div>`:''}</div>
-      <div class="card"><h2>Backups</h2><p class="small muted">This prototype stores data locally in this browser. Export a JSON backup if you use real audition data.</p><div class="actions"><button class="btn" id="exportBackup2">Export JSON backup</button><label class="btn file-label">Import JSON backup<input id="jsonInput" type="file" accept=".json,application/json"></label></div></div>
+      <div class="card"><h2>Backup & restore</h2><p class="small muted">Audition data is stored locally in this browser. Before using real data, keep a JSON backup. Importing a backup is now a two-step process: the app validates the file and shows exactly what will replace your current data before anything changes.</p><div class="actions"><button class="btn" id="exportBackup2">Share / save backup</button><button class="btn" id="copyBackup">Copy backup JSON</button></div><div class="rule"></div><div class="field"><label for="jsonInput">Import an AuditionDesk JSON backup</label><input class="file-picker" id="jsonInput" type="file" accept=".json,application/json,text/plain"></div><div class="actions" style="margin-top:10px"><button class="btn" id="pasteBackup">Paste backup JSON</button></div><div class="small muted" style="margin-top:10px">Nothing is replaced until you see the import summary and tap <strong>Replace current data</strong>.</div></div>
     </section>
   </div>`;
 }
@@ -283,8 +284,10 @@ function bind(){
   document.getElementById('clearSingers')?.addEventListener('click',clearSingers);
   document.getElementById('sessionName')?.addEventListener('input',e=>{state.session.name=e.target.value;saveState();renderSessionChip()});
   document.getElementById('sessionDay')?.addEventListener('input',e=>{state.session.day=e.target.value;saveState();renderSessionChip()});
-  document.getElementById('exportBackup')?.addEventListener('click',exportBackup);
-  document.getElementById('exportBackup2')?.addEventListener('click',exportBackup);
+  document.getElementById('exportBackup')?.addEventListener('click',openBackupExportModal);
+  document.getElementById('exportBackup2')?.addEventListener('click',openBackupExportModal);
+  document.getElementById('copyBackup')?.addEventListener('click',copyBackupJSON);
+  document.getElementById('pasteBackup')?.addEventListener('click',openPasteBackup);
   document.getElementById('jsonInput')?.addEventListener('change',importBackup);
   document.getElementById('castInput')?.addEventListener('change',importCastList);
   document.getElementById('pasteCast')?.addEventListener('click',openPasteCast);
@@ -402,8 +405,93 @@ function openPasteCast(){
 function downloadCastTemplate(){downloadText('audition-desk-cast-list-template.csv','Name,Show,Role\r\nJane Smith,Madama Butterfly,Cio-Cio-San\r\n','text/csv;charset=utf-8');toast('Cast list template downloaded')}
 function clearCastList(){if(!state.castList.length)return;if(!confirm('Clear the current-semester cast list? The 🎭 badges will disappear, but singer evaluations will remain.'))return;state.castList=[];saveState();render();toast('Cast list cleared')}
 
-function exportBackup(){downloadText(`audition-desk-backup-${dateStamp()}.json`,JSON.stringify(state,null,2),'application/json');toast('Backup exported')}
-function importBackup(e){const file=e.target.files?.[0];if(!file)return;const fr=new FileReader();fr.onload=()=>{try{const x=JSON.parse(String(fr.result));if(!Array.isArray(x.roles)||!Array.isArray(x.singers))throw new Error('Not an Audition Desk backup');state=x;currentSingerId=state.singers[0]?.id||null;saveState();toast('Backup imported');render()}catch(err){alert(`Could not import backup: ${err.message}`)}finally{e.target.value=''}};fr.readAsText(file)}
+function backupText(){return JSON.stringify(state,null,2)}
+function backupFileName(){return `audition-desk-backup-${dateStamp()}.json`}
+async function copyTextReliable(text){
+  try{if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(text);return true}}catch(e){}
+  try{const ta=document.createElement('textarea');ta.value=text;ta.setAttribute('readonly','');ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();ta.setSelectionRange(0,ta.value.length);const ok=document.execCommand('copy');ta.remove();return !!ok}catch(e){return false}
+}
+async function copyBackupJSON(){const ok=await copyTextReliable(backupText());toast(ok?'Backup JSON copied':'Could not copy automatically — use Backup / Restore')}
+function openBackupExportModal(){
+  const text=backupText(), name=backupFileName();
+  document.getElementById('modalRoot').innerHTML=`<div class="modal-backdrop" id="backupModalBackdrop"><div class="modal" role="dialog" aria-modal="true"><h2>Back up AuditionDesk</h2><p>On iPad, <strong>Share / Save</strong> is the most reliable option: choose Save to Files from the iPad share sheet. Download and copy are also available as fallbacks.</p><div class="summary-grid"><div class="summary-box"><span class="small muted">Singers</span><strong>${state.singers.length}</strong></div><div class="summary-box"><span class="small muted">Scored</span><strong>${state.singers.filter(s=>Number.isFinite(s.score)).length}</strong></div></div><div class="actions"><button class="btn primary" id="shareBackup">Share / Save</button><button class="btn" id="downloadBackup">Download</button><button class="btn" id="copyBackupModal">Copy JSON</button></div><div class="rule"></div><details><summary class="small">Show backup text</summary><textarea class="json-preview" id="backupPreview" readonly>${esc(text)}</textarea></details><div class="actions end" style="margin-top:16px"><button class="btn" id="backupClose">Close</button></div></div></div>`;
+  const close=()=>document.getElementById('modalRoot').innerHTML='';
+  document.getElementById('backupClose').onclick=close;
+  document.getElementById('backupModalBackdrop').addEventListener('click',e=>{if(e.target.id==='backupModalBackdrop')close()});
+  document.getElementById('downloadBackup').onclick=()=>{downloadText(name,text,'application/json');toast('Download requested')};
+  document.getElementById('copyBackupModal').onclick=async()=>{const ok=await copyTextReliable(text);toast(ok?'Backup JSON copied':'Copy failed — select the backup text manually')};
+  document.getElementById('shareBackup').onclick=async()=>{
+    try{
+      const file=new File([text],name,{type:'application/json'});
+      if(navigator.share && (!navigator.canShare || navigator.canShare({files:[file]}))){await navigator.share({title:'AuditionDesk backup',files:[file]});toast('Backup shared / saved');return}
+      downloadText(name,text,'application/json');toast('Share unavailable — download requested');
+    }catch(err){if(err?.name!=='AbortError'){downloadText(name,text,'application/json');toast('Share unavailable — download requested')}}
+  };
+}
+function readFileAsText(file){
+  if(file?.text) return file.text();
+  return new Promise((resolve,reject)=>{const fr=new FileReader();fr.onload=()=>resolve(String(fr.result??''));fr.onerror=()=>reject(fr.error||new Error('Could not read file'));fr.readAsText(file)});
+}
+function normalizeImportedState(x){
+  if(!x || typeof x!=='object' || Array.isArray(x)) throw new Error('The selected file does not contain an AuditionDesk backup object.');
+  if(!Array.isArray(x.roles)) throw new Error('The backup is missing its role list.');
+  if(!Array.isArray(x.singers)) throw new Error('The backup is missing its singer list.');
+  const cleanRoles=x.roles.map((r,i)=>({id:String(r?.id||`r${i+1}`),show:String(r?.show||''),name:String(r?.name||''),voice:String(r?.voice||'')}));
+  if(!cleanRoles.length) throw new Error('The backup contains no roles.');
+  const roleIds=new Set(cleanRoles.map(r=>r.id));
+  const seen=new Set();
+  const cleanSingers=x.singers.map((s,i)=>{
+    const id=String(s?.id||uid('s')); if(seen.has(id)) throw new Error(`Duplicate singer ID found: ${id}`); seen.add(id);
+    const rawScore=(s?.score===null||s?.score===''||typeof s?.score==='undefined')?null:Number(s.score);
+    const score=Number.isFinite(rawScore)?Math.min(9,Math.max(3,rawScore)):null;
+    const rs=Array.isArray(s?.roles)?s.roles.slice(0,3):[];
+    const cleanedRoles=[0,1,2].map(j=>rs[j] && roleIds.has(String(rs[j])) ? String(rs[j]) : null);
+    const status=s?.status==='no-show'?'no-show':(Number.isFinite(score)?'heard':'waiting');
+    return {id,time:String(s?.time||''),name:String(s?.name||`Singer ${i+1}`),voice:String(s?.voice||''),score,roles:cleanedRoles,notes:String(s?.notes||''),followUp:!!s?.followUp,followUpReason:String(s?.followUpReason||''),status,order:Number.isFinite(Number(s?.order))?Number(s.order):i+1};
+  });
+  const votes=(x.votes && typeof x.votes==='object' && !Array.isArray(x.votes))?x.votes:{};
+  const castList=Array.isArray(x.castList)?x.castList.map(c=>({name:String(c?.name||''),show:String(c?.show||''),role:String(c?.role||'')})).filter(c=>c.name.trim()):[];
+  return {version:4,session:{name:String(x.session?.name||'Current Season Auditions'),day:String(x.session?.day||'Audition Day')},roles:cleanRoles,singers:cleanSingers,votes,castList};
+}
+function importStats(x){return {singers:x.singers.length,scored:x.singers.filter(s=>Number.isFinite(s.score)).length,unscored:x.singers.filter(s=>!Number.isFinite(s.score)).length,roles:x.roles.length,notes:x.singers.filter(s=>String(s.notes||'').trim()).length,cast:x.castList.length}}
+function previewImportText(raw,label='JSON backup'){
+  try{
+    const parsed=JSON.parse(String(raw||''));
+    const incoming=normalizeImportedState(parsed);
+    showImportPreview(incoming,label);
+  }catch(err){showImportError(err?.message||String(err))}
+}
+function showImportError(message){
+  document.getElementById('modalRoot').innerHTML=`<div class="modal-backdrop" id="importErrorBackdrop"><div class="modal" role="dialog" aria-modal="true"><h2>Could not read backup</h2><div class="error-note" style="margin:12px 0">${esc(message)}</div><p>Your current AuditionDesk data has <strong>not</strong> been changed.</p><div class="actions end"><button class="btn primary" id="importErrorClose">OK</button></div></div></div>`;
+  const close=()=>document.getElementById('modalRoot').innerHTML=''; document.getElementById('importErrorClose').onclick=close; document.getElementById('importErrorBackdrop').addEventListener('click',e=>{if(e.target.id==='importErrorBackdrop')close()});
+}
+function showImportPreview(incoming,label){
+  const a=importStats(incoming), current=importStats(normalizeImportedState(state));
+  document.getElementById('modalRoot').innerHTML=`<div class="modal-backdrop" id="importPreviewBackdrop"><div class="modal" role="dialog" aria-modal="true"><h2>Ready to import</h2><p>${esc(label)} passed validation. Nothing has been replaced yet.</p><div class="summary-grid"><div class="summary-box"><span class="small muted">Incoming singers</span><strong>${a.singers}</strong><span class="small muted">${a.scored} scored · ${a.unscored} unscored</span></div><div class="summary-box"><span class="small muted">Incoming roles</span><strong>${a.roles}</strong><span class="small muted">${a.notes} singers with notes</span></div></div><div class="note"><strong>This will replace the current audition data.</strong><br>Your present ${current.singers} singers, scores, role choices, notes, votes, and imported cast-list data will be replaced by the contents of this backup.</div><div class="actions end" style="margin-top:18px"><button class="btn" id="importCancel">Cancel</button><button class="btn danger" id="importCommit">Replace current data</button></div></div></div>`;
+  const close=()=>document.getElementById('modalRoot').innerHTML='';
+  document.getElementById('importCancel').onclick=close;
+  document.getElementById('importPreviewBackdrop').addEventListener('click',e=>{if(e.target.id==='importPreviewBackdrop')close()});
+  document.getElementById('importCommit').onclick=()=>{
+    state=incoming; currentSingerId=state.singers[0]?.id||null; selectedRoleId=state.roles[0]?.id||null; queueQuery=''; followUpOnly=false; saveState(); page='live'; close(); render(); showImportSuccess(a);
+  };
+}
+function showImportSuccess(stats){
+  document.getElementById('modalRoot').innerHTML=`<div class="modal-backdrop" id="importSuccessBackdrop"><div class="modal" role="dialog" aria-modal="true"><h2>Import complete</h2><div class="ok-note" style="margin:12px 0"><strong>${stats.singers} singers loaded successfully.</strong><br>${stats.scored} scored · ${stats.unscored} unscored · ${stats.roles} roles.</div><p>The previous test/demo audition data has been replaced. Spot-check a few singers and roles before entering new scores.</p><div class="actions end"><button class="btn primary" id="importSuccessClose">Go to Live Entry</button></div></div></div>`;
+  const close=()=>document.getElementById('modalRoot').innerHTML=''; document.getElementById('importSuccessClose').onclick=close; document.getElementById('importSuccessBackdrop').addEventListener('click',e=>{if(e.target.id==='importSuccessBackdrop')close()});
+}
+async function importBackup(e){
+  const input=e?.target; const file=input?.files?.[0]; if(!file)return;
+  try{const raw=await readFileAsText(file); previewImportText(raw,file.name||'Selected backup')}
+  catch(err){showImportError(err?.message||'The selected file could not be read.')}
+  finally{if(input)input.value=''}
+}
+function openPasteBackup(){
+  document.getElementById('modalRoot').innerHTML=`<div class="modal-backdrop" id="pasteBackupBackdrop"><div class="modal" role="dialog" aria-modal="true"><h2>Paste backup JSON</h2><p>This is a fallback for browsers that have trouble reading a selected file. Paste the complete contents of an AuditionDesk JSON backup below.</p><textarea class="json-preview" id="pastedBackup" placeholder="{\n  &quot;version&quot;: 3,\n  ...\n}"></textarea><div class="actions end" style="margin-top:14px"><button class="btn" id="pasteBackupCancel">Cancel</button><button class="btn primary" id="pasteBackupReview">Review import</button></div></div></div>`;
+  const close=()=>document.getElementById('modalRoot').innerHTML='';
+  document.getElementById('pasteBackupCancel').onclick=close; document.getElementById('pasteBackupBackdrop').addEventListener('click',e=>{if(e.target.id==='pasteBackupBackdrop')close()});
+  document.getElementById('pasteBackupReview').onclick=()=>{const raw=document.getElementById('pastedBackup').value;if(!raw.trim()){toast('Paste the backup JSON first');return}close();previewImportText(raw,'Pasted backup JSON')};
+  setTimeout(()=>document.getElementById('pastedBackup')?.focus(),0);
+}
 function exportEvaluationsCSV(){const head=['Order','Time','Name','Voice','Status','Score','Role 1','Role 2','Role 3','Notes'];const lines=[head,...state.singers.map(s=>[s.order||'',s.time||'',s.name||'',s.voice||'',s.status||'waiting',Number.isFinite(s.score)?s.score:'',...( [0,1,2].map(i=>{const r=getRole(s.roles?.[i]);return r?`${r.show} — ${r.name}`:''}) ),s.notes||''])].map(r=>r.map(csvCell).join(','));downloadText(`audition-evaluations-${dateStamp()}.csv`,lines.join('\r\n'),'text/csv;charset=utf-8');toast('Evaluations CSV exported')}
 function csvCell(v){const s=String(v??'');return /[",\n\r]/.test(s)?`"${s.replace(/"/g,'""')}"`:s}
 function downloadText(name,text,type){const blob=new Blob([text],{type});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
